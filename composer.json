@@ -1,10 +1,10 @@
 {
-  "name": "mightypork/phpmodbus",
+  "name": "bfabiszewski/phpmodbus",
   "keywords": ["phpmodbus","modbus"],
-  "description": "PhpModbus with namespaces and updated to PHP 7",
+  "description": "PhpModbus",
   "license": "LGPL-2.1-or-later",
   "require": {
-    "php": "^5.3.2 || ^7.0 || ^8.4",
+    "php": "^8",
     "ext-sockets": "*"
   },
   "authors": [
