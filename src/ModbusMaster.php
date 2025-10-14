@@ -1381,20 +1381,116 @@ class ModbusMaster
 		return $data;
 	}
 
-	/**
-	 * byte2hex
-	 *
-	 * Parse data and get it to the Hex form
-	 *
-	 * @param int $value
-	 * @return string
-	 */
-	private function byte2hex($value)
-	{
-		$h = dechex(($value >> 4) & 0x0F);
-		$l = dechex($value & 0x0F);
-		return "$h$l";
-	}
+  /**
+   * encapsulatedInterfaceTransport
+   *
+   * Modbus function FC43 (0x2b) - Encapsulated Interface Transport.
+   *
+   * This function tunnels {@link $data} array according to MEI type {@link $type}
+   * to a Modbus device given by {@link $unitId}. Simultanously,
+   * it returns service response.
+   *
+   *
+   * @param int $unitId usually ID of Modbus device
+   * @param int $type MEI type (0xd or 0xe)
+   * @param array $data Array of values to be written (byte array).
+   * @return false|array Success flag or array of data.
+   * @throws Exception
+   */
+  public function encapsulatedInterfaceTransport(int $unitId, int $type, array $data): false|array {
+    $this->status .= "encapsulatedInterfaceTransport: START\n";
+    // connect
+    $this->connect();
+    // send FC43
+    $packet = $this->encapsulatedTransportPacketBuilder($unitId, $type, $data);
+    $this->status .= $this->printPacket($packet);
+    $this->send($packet);
+    // receive response
+    $rpacket = $this->rec();
+    $this->status .= $this->printPacket($rpacket);
+    // parse packet
+    $receivedData = $this->encapsulatedTransportParser($rpacket);
+    // disconnect
+    $this->disconnect();
+    $this->status .= "encapsulatedInterfaceTransport: DONE\n";
+    // return
+    return $receivedData;
+  }
+
+  /**
+   * fc43
+   *
+   * Alias to {@link encapsulatedInterfaceTransport} method.
+   *
+   * @param int $unitId
+   * @param int $type
+   * @param array $data
+   * @return false|array
+   * @throws Exception
+   */
+  public function fc43(int $unitId, int $type, array $data): false|array {
+    return $this->encapsulatedInterfaceTransport($unitId, $type, $data);
+  }
+
+  private function encapsulatedTransportPacketBuilder($unitId, $type, $data): string {
+    $dataLen = 0;
+    // build data section
+    $buffer1 = "";
+    foreach ($data as $dataitem) {
+      $buffer1 .= IecType::iecBYTE($dataitem);
+      $dataLen += 1;
+    }
+    // build body
+    $buffer2 = "";
+    $buffer2 .= iecType::iecBYTE(43);             // FC 43 = 43(0x2b)
+    $buffer2 .= iecType::iecBYTE($type);          // MEI type
+    $dataLen += 2;
+    // build header
+    $buffer3 = '';
+    $buffer3 .= iecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 .= iecType::iecINT(0);               // protocol ID
+    $buffer3 .= iecType::iecINT($dataLen + 1);    // length
+    $buffer3 .= iecType::iecBYTE($unitId);        // unit ID
+
+    // return packet string
+    return $buffer3 . $buffer2 . $buffer1;
+  }
+
+  /**
+   * encapsulatedTransportParser
+   *
+   * FC43 response parser
+   *
+   * @param string $packet
+   * @return false|array
+   * @throws Exception
+   */
+  private function encapsulatedTransportParser(string $packet): false|array {
+    $data = [];
+    // if not exception
+    if (!$this->responseCode($packet)) {
+      return false;
+    }
+    // get data
+    for ($i = 0; $i < ord($packet[8]); $i++) {
+      $data[$i] = ord($packet[11 + $i]);
+    }
+    return $data;
+  }
+
+  /**
+   * byte2hex
+   *
+   * Parse data and get it to the Hex form
+   *
+   * @param int $value
+   * @return string
+   */
+  private function byte2hex(int $value): string {
+    $h = dechex(($value >> 4) & 0x0F);
+    $l = dechex($value & 0x0F);
+    return "$h$l";
+  }
 
 	/**
 	 * printPacket
