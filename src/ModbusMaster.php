@@ -1388,7 +1388,7 @@ class ModbusMaster {
     $rpacket = $this->rec();
     $this->status .= $this->printPacket($rpacket);
     // parse packet
-    $receivedData = $this->encapsulatedTransportParser($rpacket);
+    $receivedData = $this->encapsulatedTransportParser($rpacket, $type);
     // disconnect
     $this->disconnect();
     $this->status .= "encapsulatedInterfaceTransport: DONE\n";
@@ -1420,19 +1420,18 @@ class ModbusMaster {
       $dataLen += 1;
     }
     // build body
-    $buffer2 = "";
-    $buffer2 .= iecType::iecBYTE(43);             // FC 43 = 43(0x2b)
-    $buffer2 .= iecType::iecBYTE($type);          // MEI type
+    $buffer2 = IecType::iecBYTE(43);          // FC 43 = 43(0x2b)
+    $buffer2 .= IecType::iecBYTE($type);      // MEI type
+    $buffer2 .= $buffer1;                     // MEI data
     $dataLen += 2;
     // build header
-    $buffer3 = '';
-    $buffer3 .= iecType::iecINT(rand(0, 65000));   // transaction ID
-    $buffer3 .= iecType::iecINT(0);               // protocol ID
-    $buffer3 .= iecType::iecINT($dataLen + 1);    // length
-    $buffer3 .= iecType::iecBYTE($unitId);        // unit ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));// transaction ID
+    $buffer3 .= IecType::iecINT(0);            // protocol ID
+    $buffer3 .= IecType::iecINT($dataLen + 1); // length
+    $buffer3 .= IecType::iecBYTE($unitId);     // unit ID
 
     // return packet string
-    return $buffer3 . $buffer2 . $buffer1;
+    return $buffer3 . $buffer2;
   }
 
   /**
@@ -1444,16 +1443,39 @@ class ModbusMaster {
    * @return false|array
    * @throws Exception
    */
-  private function encapsulatedTransportParser(string $packet): false|array {
+  private function encapsulatedTransportParser(string $packet, int $expectedMeiType): false|array {
+    // Check basic response code first
+    $this->responseCode($packet);
+
+    // Validate minimum packet length
+    if (strlen($packet) < 11) {
+      throw new Exception("Encapsulated interface response too short");
+    }
+
+    // Verify MEI type matches request
+    $responseMeiType = ord($packet[7]);
+    if ($responseMeiType !== $expectedMeiType) {
+      throw new Exception(sprintf(
+        "MEI type mismatch: expected 0x%02x, got 0x%02x",
+        $expectedMeiType, $responseMeiType
+      ));
+    }
+
+    // Parse according to manual structure (Tables 12-14)
+    // MBAP Header: 7 bytes
+    // FC43 response:
+    // - FC: 1 byte (0x2B)
+    // - MEI Type: 1 byte
+    // - MEI Data: variable
+
+    $meiDataLength = ord($packet[8]) - 1; // Subtract MEI type byte from length
     $data = [];
-    // if not exception
-    if (!$this->responseCode($packet)) {
-      return false;
+
+    // Extract MEI data starting from position 9
+    for ($i = 0; $i < $meiDataLength; $i++) {
+      $data[$i] = ord($packet[9 + $i]);
     }
-    // get data
-    for ($i = 0; $i < ord($packet[8]); $i++) {
-      $data[$i] = ord($packet[11 + $i]);
-    }
+
     return $data;
   }
 
