@@ -28,17 +28,15 @@ namespace PHPModbus;
  */
 class IecType
 {
-	/**
-	 * iecBYTE
-	 *
-	 * Converts a value to IEC-1131 BYTE data type
-	 *
-	 * @param int $value from 0 to 255
-	 * @return int IEC BYTE data type
-	 *
-	 */
-	public static function iecBYTE($value)
-	{
+  /**
+   * iecBYTE
+   *
+   * Converts a value to IEC-1131 BYTE data type
+   *
+   * @param int $value from 0 to 255
+   * @return string IEC BYTE data type
+   */
+	public static function iecBYTE(int $value): string {
 		return chr($value & 0xFF);
 	}
 
@@ -48,63 +46,57 @@ class IecType
 	 * Converts a value to IEC-1131 INT data type
 	 *
 	 * @param int $value to be converted
-	 * @return int IEC-1131 INT data type
+	 * @return string IEC-1131 INT data type
 	 *
 	 */
-	public static function iecINT($value)
-	{
-		return self::iecBYTE(($value >> 8) & 0x00FF) .
-		self::iecBYTE(($value & 0x00FF));
+	public static function iecINT(int $value): string {
+		return self::iecBYTE(($value >> 8) & 0x00FF) . self::iecBYTE(($value & 0x00FF));
 	}
 
-	/**
-	 * iecDINT
-	 *
-	 * Converts a value to IEC-1131 DINT data type
-	 *
-	 * @param int $value     to be converted
-	 * @param int $bigEndian defines endian codding (little endian == 0, big endian == 1)
-	 * @return int IEC-1131 INT data type
-	 *
-	 */
-	public static function iecDINT($value, $bigEndian = 0)
-	{
+  /**
+   * iecDINT
+   *
+   * Converts a value to IEC-1131 DINT data type
+   *
+   * @param int $value to be converted
+   * @param bool $bigEndian defines endian codding (little endian == 0, big endian == 1)
+   * @return string IEC-1131 INT data type
+   */
+	public static function iecDINT(int $value, bool $bigEndian = false): string {
 		// result with right endianness
 		return self::endianness($value, $bigEndian);
 	}
 
-	/**
-	 * iecREAL
-	 *
-	 * Converts a value to IEC-1131 REAL data type. The function uses function  @use float2iecReal.
-	 *
-	 * @param int  $value     to be converted
-	 * @param bool $bigEndian defines endian codding (little endian == 0, big endian == 1)
-	 * @return int IEC-1131 REAL data type
-	 */
-	public static function iecREAL($value, $bigEndian = 0)
-	{
+  /**
+   * iecREAL
+   *
+   * Converts a value to IEC-1131 REAL data type. The function uses function @use IecType::float2iecReal.
+   *
+   * @param int $value to be converted
+   * @param bool $bigEndian defines endian codding (little endian == 0, big endian == 1)
+   * @return string IEC-1131 REAL data type
+   */
+	public static function iecREAL(int $value, bool $bigEndian = false): string {
 		// iecREAL representation
 		$real = self::float2iecReal($value);
 		// result with right endianness
 		return self::endianness($real, $bigEndian);
 	}
 
-	/**
-	 * float2iecReal
-	 *
-	 * This function converts float value to IEC-1131 REAL single precision form.
-	 *
-	 * For more see [{@link http://en.wikipedia.org/wiki/Single_precision Single precision on Wiki}] or
-	 * [{@link http://de.php.net/manual/en/function.base-convert.php PHP base_convert function commentary}, Todd Stokes
-	 * @ Georgia Tech 21-Nov-2007] or
-	 * [{@link http://www.php.net/manual/en/function.pack.php PHP pack/unpack functionality}]
-	 *
-	 * @param float $value to be converted
-	 * @return int IEC REAL data type
-	 */
-	private static function float2iecReal($value)
-	{
+  /**
+   * float2iecReal
+   *
+   * This function converts float value to IEC-1131 REAL single precision form.
+   *
+   * For more see [{@link http://en.wikipedia.org/wiki/Single_precision Single precision on Wiki}] or
+   * [{@link http://de.php.net/manual/en/function.base-convert.php PHP base_convert function commentary}, Todd Stokes
+   * @ Georgia Tech 21-Nov-2007] or
+   * [{@link http://www.php.net/manual/en/function.pack.php PHP pack/unpack functionality}]
+   *
+   * @param float $value to be converted
+   * @return string IEC REAL data type
+   */
+	private static function float2iecReal(float $value): string {
 		// get float binary string
 		$float = pack("f", $value);
 		// set 32-bit unsigned integer of the float
@@ -112,18 +104,17 @@ class IecType
 		return $w[1];
 	}
 
-	/**
-	 * endianness
-	 *
-	 * Make endianess as required.
-	 * For more see http://en.wikipedia.org/wiki/Endianness
-	 *
-	 * @param int  $value
-	 * @param bool $bigEndian
-	 * @return int
-	 */
-	private static function endianness($value, $bigEndian = 0)
-	{
+  /**
+   * endianness
+   *
+   * Make endianness as required.
+   * For more see http://en.wikipedia.org/wiki/Endianness
+   *
+   * @param int $value
+   * @param bool $bigEndian
+   * @return string
+   */
+	private static function endianness(int $value, bool $bigEndian = false): string {
 		if ($bigEndian == 0) {
 			return
 				self::iecBYTE(($value >> 8) & 0x000000FF) .

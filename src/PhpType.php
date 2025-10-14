@@ -31,40 +31,38 @@ use Exception;
  */
 class PhpType
 {
-	/**
-	 * bytes2float
-	 *
-	 * The function converts array of 4 bytes to float. The return value
-	 * depends on order of the input bytes (endianning).
-	 *
-	 * @param array $values
-	 * @param bool  $bigEndian
-	 * @return float
-	 */
-	public static function bytes2float($values, $bigEndian = 0)
-	{
+  /**
+   * bytes2float
+   *
+   * The function converts array of 4 bytes to float. The return value
+   * depends on order of the input bytes (endianness).
+   *
+   * @param array $values
+   * @param bool $bigEndian
+   * @return float
+   * @throws Exception
+   */
+	public static function bytes2float(array $values, bool $bigEndian = false): float {
 		// Set the array to correct form
 		$data = self::checkData($values);
 		// Combine bytes
 		$real = self::combineBytes($data, $bigEndian);
 		// Convert the real value to float
-		return (float)self::real2float($real);
+		return self::real2float($real);
 	}
 
-	/**
-	 * bytes2signedInt
-	 *
-	 * The function converts array of 2 or 4 bytes to signed integer.
-	 * The return value depends on order of the input bytes (endianning).
-	 *
-	 * @param array $values
-	 * @param bool  $bigEndian
-	 * @return int
-	 */
-	public static function bytes2signedInt($values, $bigEndian = 0)
-	{
-		$data = array();
-		$int = 0;
+  /**
+   * bytes2signedInt
+   *
+   * The function converts array of 2 or 4 bytes to signed integer.
+   * The return value depends on order of the input bytes (endianness).
+   *
+   * @param array $values
+   * @param bool $bigEndian
+   * @return int
+   * @throws Exception
+   */
+	public static function bytes2signedInt(array $values, bool $bigEndian = false): int {
 		// Set the array to correct form
 		$data = self::checkData($values);
 		// Combine bytes
@@ -74,23 +72,21 @@ class PhpType
 			$int = 0xFFFF8000 | $int;
 		}
 		// Convert the value
-		return (int)self::dword2signedInt($int);
+		return self::dword2signedInt($int);
 	}
 
-	/**
-	 * bytes2unsignedInt
-	 *
-	 * The function converts array of 2 or 4 bytes to unsigned integer.
-	 * The return value depends on order of the input bytes (endianning).
-	 *
-	 * @param array $values
-	 * @param bool  $bigEndian
-	 * @return int|float
-	 */
-	public static function bytes2unsignedInt($values, $bigEndian = 0)
-	{
-		$data = array();
-		$int = 0;
+  /**
+   * bytes2unsignedInt
+   *
+   * The function converts array of 2 or 4 bytes to unsigned integer.
+   * The return value depends on order of the input bytes (endianness).
+   *
+   * @param array $values
+   * @param bool $bigEndian
+   * @return int|float
+   * @throws Exception
+   */
+	public static function bytes2unsignedInt(array $values, bool $bigEndian = false): float|int {
 		// Set the array to correct form
 		$data = self::checkData($values);
 		// Combine bytes
@@ -102,15 +98,14 @@ class PhpType
 	/**
 	 * bytes2string
 	 *
-	 * The function converts an values array to the string. The function detects
+	 * The function converts values array to the string. The function detects
 	 * the end of the string by 0x00 character as defined by string standards.
 	 *
 	 * @param array $values
 	 * @param bool  $bigEndian
 	 * @return string
 	 */
-	public static function bytes2string($values, $bigEndian = 0)
-	{
+	public static function bytes2string(array $values, bool $bigEndian = false): string {
 		// Prepare string variable
 		$str = "";
 		// Parse the received data word array
@@ -156,8 +151,7 @@ class PhpType
 	 * @param int $value in IEC REAL data type to be converted
 	 * @return float float value
 	 */
-	private static function real2float($value)
-	{
+	private static function real2float(int $value): float {
 		// get unsigned long
 		$ulong = pack("L", $value);
 		// set float
@@ -174,8 +168,7 @@ class PhpType
 	 * @param int $value
 	 * @return int
 	 */
-	private static function dword2signedInt($value)
-	{
+	private static function dword2signedInt(int $value): int {
 		if ((0x80000000 & $value) != 0) {
 			return -(0x7FFFFFFF & ~$value) - 1;
 		} else {
@@ -191,12 +184,11 @@ class PhpType
 	 * @param int $value
 	 * @return int|float
 	 */
-	private static function dword2unsignedInt($value)
-	{
+	private static function dword2unsignedInt(int $value): float|int {
 		if ((0x80000000 & $value) != 0) {
 			return ((float)(0x7FFFFFFF & $value)) + 2147483648;
 		} else {
-			return (int)(0x7FFFFFFF & $value);
+			return 0x7FFFFFFF & $value;
 		}
 	}
 
@@ -206,20 +198,18 @@ class PhpType
 	 * Check if the data variable is array, and check if the values are numeric
 	 *
 	 * @param int[] $data
-	 * @return int
+	 * @return int[]
 	 * @throws Exception
 	 */
-	private static function checkData($data)
-	{
+	private static function checkData(array $data): array {
 		// Check the data
-		if (!is_array($data) ||
-			count($data) < 2 ||
+		if (count($data) < 2 ||
 			count($data) > 4 ||
 			count($data) == 3
 		) {
 			throw new Exception('The input data should be an array of 2 or 4 bytes.');
 		}
-		// Fill the rest of array by zeroes
+		// Fill the rest of array with zeroes
 		if (count($data) == 2) {
 			$data[2] = 0;
 			$data[3] = 0;
@@ -236,20 +226,18 @@ class PhpType
 		return $data;
 	}
 
-	/**
-	 * combineBytes
-	 *
-	 * Combine bytes together
-	 *
-	 * @param int  $data
-	 * @param bool $bigEndian
-	 * @return int
-	 */
-	private static function combineBytes($data, $bigEndian)
-	{
-		$value = 0;
+  /**
+   * combineBytes
+   *
+   * Combine bytes together
+   *
+   * @param array $data
+   * @param bool $bigEndian
+   * @return int
+   */
+	private static function combineBytes(array $data, bool $bigEndian): int {
 		// Combine bytes
-		if ($bigEndian == 0) {
+		if (!$bigEndian) {
 			$value = (($data[3] & 0xFF) << 16) |
 				(($data[2] & 0xFF) << 24) |
 				(($data[1] & 0xFF)) |

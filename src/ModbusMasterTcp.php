@@ -44,7 +44,7 @@ class ModbusMasterTcp extends ModbusMaster
 	 *
 	 * @param String $host An IP address of a Modbus TCP device. E.g. "192.168.1.1".
 	 */
-	public function __construct($host)
+	public function __construct(string $host)
 	{
 		parent::__construct($host, "TCP");
 	}
