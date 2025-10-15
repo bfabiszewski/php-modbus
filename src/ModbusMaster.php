@@ -63,7 +63,7 @@ class ModbusMaster {
   public int $client_port = 502;
 
   /** @var string ModbusMaster status messages (echo for debugging) */
-  public string $status;
+  public string $status = "";
 
   /** @var float Total response timeout (seconds, decimals allowed) */
   public float $timeout_sec = 3;
