@@ -29,7 +29,7 @@ use Socket;
  *
  * Implemented MODBUS master functions:
  * - FC 1: read coils
- * - FC 2: read input discretes
+ * - FC 2: read Discrete Inputs
  * - FC 3: read multiple registers
  * - FC 4: read multiple input registers
  * - FC 5: write single coil
@@ -140,7 +140,7 @@ class ModbusMaster {
     if (strlen($this->client) > 0) {
       $result = socket_bind($this->sock, $this->client, $this->client_port);
       if ($result === false) {
-        throw new Exception("socket_bind() failed. Reason: ($result)" .
+        throw new Exception("socket_bind() failed. Reason: " .
           socket_strerror(socket_last_error($this->sock)));
       } else {
         $this->status .= "Bound\n";
@@ -154,7 +154,7 @@ class ModbusMaster {
     // Connect the socket
     $result = @socket_connect($this->sock, $this->host, $this->port);
     if ($result === false) {
-      throw new Exception("socket_connect() failed. Reason: ($result)" .
+      throw new Exception("socket_connect() failed. Reason: " .
         socket_strerror(socket_last_error($this->sock)));
     } else {
       $this->status .= "Connected\n";
@@ -329,17 +329,15 @@ class ModbusMaster {
     // build data section
     $buffer1 = "";
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(1);              // FC 1 = 1(0x01)
+    $buffer2 = IecType::iecBYTE(1);              // FC 1 = 1(0x01)
     // build body - read section
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $buffer2 .= IecType::iecINT($quantity);       // quantity
     $dataLen += 5;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
     // return packet string
     return $buffer3 . $buffer2 . $buffer1;
@@ -388,7 +386,7 @@ class ModbusMaster {
   /**
    * readInputDiscretes
    *
-   * Modbus function FC 2(0x02) - Read Input Discretes
+   * Modbus function FC 2(0x02) - Read Discrete Inputs
    *
    * Reads {@link $quantity} of Inputs (boolean) from reference
    * {@link $reference} of a memory of a Modbus device given by
@@ -450,17 +448,15 @@ class ModbusMaster {
     // build data section
     $buffer1 = "";
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(2);              // FC 2 = 2(0x02)
+    $buffer2 = IecType::iecBYTE(2);              // FC 2 = 2(0x02)
     // build body - read section
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $buffer2 .= IecType::iecINT($quantity);       // quantity
     $dataLen += 5;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
     // return packet string
     return $buffer3 . $buffer2 . $buffer1;
@@ -493,7 +489,7 @@ class ModbusMaster {
    * @param int $unitId usually ID of Modbus device
    * @param int $reference Reference in the device memory to read data (e.g. in device WAGO 750-841, memory MW0
    *                       starts at address 12288).
-   * @param int $quantity Amounth of the data to be read from device.
+   * @param int $quantity Amount of the data to be read from device.
    * @return false|array Success flag or array of received data.
    * @throws Exception
    */
@@ -547,17 +543,15 @@ class ModbusMaster {
     // build data section
     $buffer1 = "";
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(3);             // FC 3 = 3(0x03)
+    $buffer2 = IecType::iecBYTE(3);             // FC 3 = 3(0x03)
     // build body - read section
     $buffer2 .= IecType::iecINT($reference);  // refnumber = 12288
     $buffer2 .= IecType::iecINT($quantity);       // quantity
     $dataLen += 5;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
     // return packet string
     return $buffer3 . $buffer2 . $buffer1;
@@ -649,15 +643,13 @@ class ModbusMaster {
     // build data section
     $buffer1 = "";
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(4);                                                // FC 4 = 4(0x04)
+    $buffer2 = IecType::iecBYTE(4);                                                // FC 4 = 4(0x04)
     // build body - read section
     $buffer2 .= IecType::iecINT($reference);                                        // refnumber = 12288
     $buffer2 .= IecType::iecINT($quantity);                                         // quantity
     $dataLen += 5;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));                                     // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));                                     // transaction ID
     $buffer3 .= IecType::iecINT(0);                                                 // protocol ID
     $buffer3 .= IecType::iecINT($dataLen + 1);                                      // length
     $buffer3 .= IecType::iecBYTE($unitId);                                          // unit ID
@@ -758,13 +750,11 @@ class ModbusMaster {
     }
     $dataLen += 2;
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(5);             // FC5 = 5(0x05)
+    $buffer2 = IecType::iecBYTE(5);             // FC5 = 5(0x05)
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $dataLen += 3;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
     $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
@@ -851,21 +841,19 @@ class ModbusMaster {
     $dataLen = 0;
     // build data section
     $buffer1 = "";
-    foreach ($data as $key => $dataitem) {
+    foreach ($data as $dataitem) {
       $buffer1 .= IecType::iecINT($dataitem);   // register values x
       $dataLen += 2;
       break;
     }
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(6);             // FC6 = 6(0x06)
+    $buffer2 = IecType::iecBYTE(6);             // FC6 = 6(0x06)
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $dataLen += 3;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
 
     // return packet string
@@ -971,17 +959,15 @@ class ModbusMaster {
       $dataLen += 1;
     }
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(15);             // FC 15 = 15(0x0f)
+    $buffer2 = IecType::iecBYTE(15);             // FC 15 = 15(0x0f)
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $buffer2 .= IecType::iecINT(count($data));      // bit count
     $buffer2 .= IecType::iecBYTE((count($data) + 7) / 8);       // byte count
     $dataLen += 6;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        // unit ID
 
     // return packet string
@@ -1087,17 +1073,15 @@ class ModbusMaster {
       }
     }
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(16);             // FC 16 = 16(0x10)
+    $buffer2 = IecType::iecBYTE(16);             // FC 16 = 16(0x10)
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $buffer2 .= IecType::iecINT($dataLen / 2);        // word count
     $buffer2 .= IecType::iecBYTE($dataLen);     // byte count
     $dataLen += 6;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
 
     // return packet string
@@ -1186,17 +1170,15 @@ class ModbusMaster {
     // build data section
     $buffer1 = "";
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(22);             // FC 22 = 22(0x16)
+    $buffer2 = IecType::iecBYTE(22);             // FC 22 = 22(0x16)
     $buffer2 .= IecType::iecINT($reference);      // refnumber = 12288
     $buffer2 .= IecType::iecINT($andMask);        // AND mask
     $buffer2 .= IecType::iecINT($orMask);          // OR mask
     $dataLen += 7;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
     // return packet string
     return $buffer3 . $buffer2 . $buffer1;
@@ -1222,14 +1204,14 @@ class ModbusMaster {
    * Modbus function FC23(0x17) - Read Write Registers.
    *
    * This function writes {@link $data} array at reference {@link $referenceWrite}
-   * position of memory of a Modbus device given by {@link $unitId}. Simultanously,
+   * position of memory of a Modbus device given by {@link $unitId}. Simultaneously,
    * it returns {@link $quantity} of Words (2 bytes) from reference {@link $referenceRead}.
    *
    *
    * @param int $unitId usually ID of Modbus device
    * @param int $referenceRead Reference in the device memory to read data (e.g. in device WAGO 750-841, memory
    *                              MW0 starts at address 12288).
-   * @param int $quantity Amounth of the data to be read from device.
+   * @param int $quantity Amount of the data to be read from device.
    * @param int $referenceWrite Reference in the device memory to write data.
    * @param array $data Array of values to be written.
    * @param array $dataTypes Array of types of values to be written. The array should consists of string "INT",
@@ -1317,8 +1299,7 @@ class ModbusMaster {
       }
     }
     // build body
-    $buffer2 = "";
-    $buffer2 .= IecType::iecBYTE(23);             // FC 23 = 23(0x17)
+    $buffer2 = IecType::iecBYTE(23);             // FC 23 = 23(0x17)
     // build body - read section
     $buffer2 .= IecType::iecINT($referenceRead);  // refnumber = 12288
     $buffer2 .= IecType::iecINT($quantity);       // quantity
@@ -1328,10 +1309,9 @@ class ModbusMaster {
     $buffer2 .= IecType::iecBYTE($dataLen);       // byte count
     $dataLen += 10;
     // build header
-    $buffer3 = '';
-    $buffer3 .= IecType::iecINT(rand(0, 65000));   // transaction ID
+    $buffer3 = IecType::iecINT(rand(0, 65000));   // transaction ID
     $buffer3 .= IecType::iecINT(0);               // protocol ID
-    $buffer3 .= IecType::iecINT($dataLen + 1);    // lenght
+    $buffer3 .= IecType::iecINT($dataLen + 1);    // length
     $buffer3 .= IecType::iecBYTE($unitId);        //unit ID
 
     // return packet string
@@ -1366,7 +1346,7 @@ class ModbusMaster {
    * Modbus function FC43 (0x2b) - Encapsulated Interface Transport.
    *
    * This function tunnels {@link $data} array according to MEI type {@link $type}
-   * to a Modbus device given by {@link $unitId}. Simultanously,
+   * to a Modbus device given by {@link $unitId}. Simultaneously,
    * it returns service response.
    *
    *
@@ -1440,6 +1420,7 @@ class ModbusMaster {
    * FC43 response parser
    *
    * @param string $packet
+   * @param int $expectedMeiType
    * @return false|array
    * @throws Exception
    */
