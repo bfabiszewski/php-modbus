@@ -42,7 +42,7 @@ use Socket;
  *
  * @author     Jan Krakora
  * @copyright  Copyright (c) 2004, 2013 Jan Krakora
- * @copyright  Copyright (c) 2025, Bartek Fabiszewski
+ * @copyright  Copyright (c) 2026, Bartek Fabiszewski
  * @package    Phpmodbus
  *
  */
@@ -120,7 +120,9 @@ class ModbusMaster {
   /**
    * connect
    *
-   * Connect the socket
+   * Connect the socket. For TCP, uses a non-blocking connect + select so that
+   * SO_SNDTIMEO / slow handshakes yield a bounded wait instead of treating
+   * EINPROGRESS ("Operation in progress") as an immediate hard failure.
    *
    * @return void
    * @throws Exception
@@ -129,36 +131,96 @@ class ModbusMaster {
     // Create a protocol specific socket
     if ($this->socket_protocol == "TCP") {
       // TCP socket
-      $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+      $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
     } elseif ($this->socket_protocol == "UDP") {
       // UDP socket
-      $this->sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+      $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
     } else {
       throw new Exception("Unknown socket protocol, should be 'TCP' or 'UDP'");
     }
+    if ($sock === false) {
+      throw new Exception("socket_create() failed. Reason: " . socket_strerror(socket_last_error()));
+    }
+    $this->sock = $sock;
+
     // Bind the client socket to a specific local port
     if (strlen($this->client) > 0) {
       $result = socket_bind($this->sock, $this->client, $this->client_port);
       if ($result === false) {
-        throw new Exception("socket_bind() failed. Reason: " .
-          socket_strerror(socket_last_error($this->sock)));
-      } else {
-        $this->status .= "Bound\n";
+        $error = socket_strerror(socket_last_error($this->sock));
+        @socket_close($this->sock);
+        throw new Exception("socket_bind() failed. Reason: " . $error);
       }
+      $this->status .= "Bound\n";
     }
 
-    // Socket settings (send/write timeout)
+    // Socket settings (send/write timeout) — used for I/O after connect
     $writeTimeout = $this->secsToSecUsecArray($this->socket_write_timeout_sec);
     socket_set_option($this->sock, SOL_SOCKET, SO_SNDTIMEO, $writeTimeout);
 
-    // Connect the socket
-    $result = @socket_connect($this->sock, $this->host, $this->port);
-    if ($result === false) {
-      throw new Exception("socket_connect() failed. Reason: " .
-        socket_strerror(socket_last_error($this->sock)));
-    } else {
+    if ($this->socket_protocol == "UDP") {
+      $result = @socket_connect($this->sock, $this->host, $this->port);
+      if ($result === false) {
+        $error = socket_strerror(socket_last_error($this->sock));
+        @socket_close($this->sock);
+        throw new Exception("socket_connect() failed. Reason: " . $error);
+      }
       $this->status .= "Connected\n";
+      return;
     }
+
+    // TCP: non-blocking connect with select wait up to timeout_sec
+    socket_set_nonblock($this->sock);
+    $result = @socket_connect($this->sock, $this->host, $this->port);
+    if ($result === true) {
+      socket_set_block($this->sock);
+      $this->status .= "Connected\n";
+      return;
+    }
+
+    $error = socket_last_error($this->sock);
+    socket_clear_error($this->sock);
+    $inProgress = defined('SOCKET_EINPROGRESS') && $error === SOCKET_EINPROGRESS;
+    $wouldBlock = defined('SOCKET_EWOULDBLOCK') && $error === SOCKET_EWOULDBLOCK;
+    $already = defined('SOCKET_EALREADY') && $error === SOCKET_EALREADY;
+    $isConnected = defined('SOCKET_EISCONN') && $error === SOCKET_EISCONN;
+    if ($isConnected) {
+      socket_set_block($this->sock);
+      $this->status .= "Connected\n";
+      return;
+    }
+    if (!$inProgress && !$wouldBlock && !$already && $error !== 0) {
+      $message = socket_strerror($error);
+      @socket_close($this->sock);
+      throw new Exception("socket_connect() failed. Reason: " . $message);
+    }
+
+    $read = null;
+    $write = [$this->sock];
+    $except = [$this->sock];
+    $timeoutParts = $this->secsToSecUsecArray($this->timeout_sec);
+    $selected = @socket_select($read, $write, $except, $timeoutParts['sec'], $timeoutParts['usec']);
+    socket_set_block($this->sock);
+
+    if ($selected === false) {
+      $message = socket_strerror(socket_last_error($this->sock));
+      @socket_close($this->sock);
+      throw new Exception("socket_select() failed. Reason: " . $message);
+    }
+    if ($selected === 0 || $except !== []) {
+      @socket_close($this->sock);
+      throw new Exception(
+        "socket_connect() timed out after " . $this->timeout_sec . " sec to " . $this->host
+      );
+    }
+
+    $soError = socket_get_option($this->sock, SOL_SOCKET, SO_ERROR);
+    if ($soError !== 0 && $soError !== false) {
+      $message = socket_strerror((int) $soError);
+      @socket_close($this->sock);
+      throw new Exception("socket_connect() failed. Reason: " . $message);
+    }
+    $this->status .= "Connected\n";
   }
 
   /**
